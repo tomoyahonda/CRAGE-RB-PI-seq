@@ -1,8 +1,6 @@
 library("Biostrings")
 library("dplyr")
 
-setwd("/global/cscratch1/sd/thonda/promoter_barcode_140bp_v2")
-
 gDNA1 = readDNAStringSet("gDNA_G1.fasta")
 promoter <- subseq(gDNA1, 1, 140)
 barcode <- subseq(gDNA1, 174, 193)
@@ -27,7 +25,7 @@ length(unique(df_group1_unique$promoters)) #variation of promoters: 14235
 length(unique(df_group1_unique$barcodes)) #variation of barcodes: 117624
 
 
-#returns the barcodes with only one occurrence: https://stackoverflow.com/questions/16905425/find-duplicate-values-in-r
+#returns the barcodes with only one occurrence
 n_occur <- data.frame(table(df_group1_unique$barcodes)) #gives dataframe with a list of barcodes and the number of times they occurred
 df_group1_index <- df_group1_unique[df_group1_unique$barcodes %in% n_occur$Var1[n_occur$Freq < 2],] #remove barcode duplicates
 nrow(df_group1_index) #promoter-barcode seq after removeing sequences with duplicated barcodes: 117328
