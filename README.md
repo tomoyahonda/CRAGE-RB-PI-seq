@@ -1,1 +1,2 @@
 # CRAGE-RB-PI-seq
+We developed CRAGE randomly barcoded promoter-library insertion sequencing (CRAGE-RB-PI-seq) to characterize the promoter activities of host-colonizing bacteria. This method selectively amplifies barcoded transcripts, overcoming interference from host RNA. As a proof of concept, we analyzed the transcriptional activities of Pseudomonas simiae WCS417 during Arabidopsis root colonization. Our manuscript is avalable here: https://www.biorxiv.org/content/10.1101/2024.11.19.624340v1.abstract
