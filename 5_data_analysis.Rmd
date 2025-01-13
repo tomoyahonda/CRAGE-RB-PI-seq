@@ -1,16 +1,10 @@
----
-title: "R Notebook"
-output: html_notebook
----
-
-
-Set working directory:  
+#Set working directory:  
 ```{r setup}
-knitr::opts_knit$set(root.dir = '~/Desktop/Desktop - Thonda-m80/Berkeley Research/2022.paperdraft/Data_plant_QB3')
+knitr::opts_knit$set(root.dir = '~/Desktop//2022.paperdraft/Data_plant_QB3')
 ```
 
 
-Read data files with G23 all promoters
+#Read data files with all promoters
 ```{r}
 library(dplyr)
 
@@ -45,16 +39,10 @@ summarydf$C_R3_T3 <- summarydf$RNA_C_R3_T3.fasta / summarydf$DNA_C_R3_T3.fasta
 summarydf$C_R4_T1 <- summarydf$RNA_C_R4_T1.fasta / summarydf$DNA_C_R4_T1.fasta
 summarydf$C_R4_T2 <- summarydf$RNA_C_R4_T2.fasta / summarydf$DNA_C_R4_T2.fasta
 summarydf$C_R4_T3 <- summarydf$RNA_C_R4_T3.fasta / summarydf$DNA_C_R4_T3.fasta
-
-summarydf$C_T1 <- (summarydf$C_R1_T1+summarydf$C_R2_T1+summarydf$C_R3_T1+summarydf$C_R4_T1)/4
-summarydf$C_T2 <- (summarydf$C_R1_T2+summarydf$C_R2_T2+summarydf$C_R3_T2+summarydf$C_R4_T2)/4
-summarydf$C_T3 <- (summarydf$C_R1_T3+summarydf$C_R2_T3+summarydf$C_R3_T3+summarydf$C_R4_T3)/4
-
-# write.csv(summarydf, file = "time_course_rawvalues.csv", na="")
 ```
 
 
-Limma
+# Limma analysis
 ```{r}
 library(edgeR)
 library(limma)
@@ -71,7 +59,7 @@ Counts <-
 
 Counts <- as.data.frame(Counts)
 
-#Change row name to promoter sequences (https://www.biostars.org/p/9494615/#9494958) This links promoter to logFC & p-values in the end.
+#Change row name to promoter sequences. This links promoter to logFC & p-values in the end.
 rownames(Counts) <- Counts[, 1]
 Counts[, 1] <- NULL
 
@@ -125,9 +113,9 @@ summary(result)
 
 
 
-KEGG pathway analysis by considering operon structure
+# KEGG pathway analysis by considering operon structure
 ```{r}
-setwd("~/Desktop/Desktop - Thonda-m80/Berkeley Research/Genome WCS417")
+setwd("~/Desktop/Berkeley Research/Genome WCS417")
 KEGG_ID <- read.csv("OperonID_rockhopper_v4.csv", header = T)
 Promoter_ID <- read.csv("promoter_information.csv", header = T)
 
@@ -179,8 +167,6 @@ df_down <- left_join(df, CT1vsCT2vsCT3, by = "promoters")
 nrow(df_down)
 write.csv(df_down, file = "timecourse_down_p0.05.csv", na="")
 
-
-####### make sure manually curate promoters which are a part of operon #######
 df <- df_down[,c("KEGG_OID")]
 c<- as.vector(df)
 c<- c[c != ""]
@@ -208,7 +194,6 @@ df_up <- left_join(df, CT1vsCT2vsCT3, by = "promoters")
 nrow(df_up)
 write.csv(df_up, file = "timecourse_up_p0.05.csv", na="")
 
-####### make sure manually curate promoters which are a part of operon #######
 df <- df_up[,c("KEGG_OID")]
 c<- as.vector(df)
 c<- c[c != ""]
@@ -223,7 +208,7 @@ write.csv(KEGG_Up, file = "KEGG_Up.csv", na="")
 
 
 
-plot relative to day3
+# plot relative to sampling day 1
 ```{r}
 # plot all genes with grey color
 Genes <- CT1vsCT2vsCT3$promoters
@@ -266,7 +251,7 @@ for (i in seq(1, length(Genes))) {
 ```
 
 
-plot relative to day3 for selected promoters
+# plot relative to day3 for selected promoters
 ```{r}
 par(mfrow=c(2,3))
 par(new=FALSE)
@@ -408,122 +393,3 @@ for (i in seq(1, length(Genes))) {
 
 
 
-
-
-
-
-Read dualRNAseq data tombine with Piseq data
-```{r}
-#read RNAseq file for glycerol
-setwd("~/Desktop/Desktop - Thonda-m80/Berkeley Research/2022.paperdraft/dualRNAseq")
-summarydf_RNAseq <- read.table("X_CountSummary_bacterial_mRNA.txt", header = T, sep = "\t", quote="")
-names(summarydf_RNAseq)[3] <- "start"
-```
-
-Limma
-```{r}
-Counts <- 
-  summarydf_RNAseq %>%
-  ungroup() %>%
-  select(start,
-         C_R1_T1.bam, C_R1_T3.bam,
-         C_R2_T1.bam, C_R2_T3.bam,
-         C_R3_T1.bam, C_R3_T3.bam,
-         C_R4_T1.bam, C_R4_T3.bam,
-         P_R1_T1.bam, P_R1_T3.bam,
-                      P_R2_T3.bam,
-         P_R3_T1.bam,
-         P_R4_T1.bam, P_R4_T3.bam,
-         P_R5_T1.bam, P_R5_T3.bam)
-
-Counts <- as.data.frame(Counts)
-
-#Change row name to promoter sequences (https://www.biostars.org/p/9494615/#9494958) This links promoter to logFC & p-values in the end.
-rownames(Counts) <- Counts[, 1]
-Counts[, 1] <- NULL
-
-# convert to CPM values with +1
-Counts1 <- Counts
-for(i in 1:ncol(Counts1)) {
-  Counts1[ , i] <- Counts1[ , i] * 1e6 / sum(Counts1[ , i])
-  Counts1[ , i] <- Counts1[ , i] + 1
-  sum(Counts1[ , i])
-}
-
-dge <- DGEList(counts=Counts1)
-dge
-
-group <- as.factor(c("CT1", "CT3",
-                     "CT1", "CT3",  
-                     "CT1", "CT3",  
-                     "CT1", "CT3",
-                     "PT1", "PT3",
-                            "PT3",  
-                     "PT1",  
-                     "PT1", "PT3",
-                     "PT1", "PT3"))
-
-dge$samples$group <- group
-dge$samples
-
-cpm <- cpm(dge)
-lcpm <- cpm(dge, log=TRUE)
-
-table(rowSums(dge$counts==0)==9)
-
-
-# create a design matrix
-design <- model.matrix(~0+group)
-colnames(design) <- gsub("group", "", colnames(design))
-design
-
-# create a contrast matrix for DE comparisons
-contr.matrix <- makeContrasts(
- CT1vsCT3 = CT3-CT1,
- PT1vsPT3 = PT3-PT1,
- CT3vsPT3 = PT3-CT3,
- levels = colnames(design))
-contr.matrix
-
-##### limma-trend analysis ####
-logCPM <- cpm(dge, log = TRUE, prior.count = 10)
-lmfit <- lmFit(logCPM, design)
-lmfit <- contrasts.fit(lmfit, contrasts=contr.matrix)
-lmfit <- eBayes(lmfit, trend = TRUE, robust=TRUE) # trend = TRUE doesn't yield horizonal line, yet probably the best analysis to eliminate the relation.
-plotSA(lmfit)
-result <- decideTests(lmfit ,adjust.method="BH", lfc = 1, p.value=0.05)
-summary(result)
-```
-
-```{r}
-for(i in 8:ncol(summarydf_RNAseq)) {
-  summarydf_RNAseq[ , i] <- summarydf_RNAseq[ , i] * 1e6 / sum(summarydf_RNAseq[ , i])
-  summarydf_RNAseq[ , i] <- summarydf_RNAseq[ , i] + 1
-  sum(summarydf_RNAseq[ , i])
-}
-
-summarydf_RNAseq$C_T1 <- (summarydf_RNAseq$C_R1_T1+summarydf_RNAseq$C_R2_T1+summarydf_RNAseq$C_R3_T1+summarydf_RNAseq$C_R4_T1)/4
-summarydf_RNAseq$C_T3 <- (summarydf_RNAseq$C_R1_T3+summarydf_RNAseq$C_R2_T3+summarydf_RNAseq$C_R3_T3+summarydf_RNAseq$C_R4_T3)/4
-summarydf_RNAseq$P_T1 <- (summarydf_RNAseq$P_R1_T1+summarydf_RNAseq$P_R3_T1+summarydf_RNAseq$P_R4_T1+summarydf_RNAseq$P_R5_T1)/4
-summarydf_RNAseq$P_T3 <- (summarydf_RNAseq$P_R1_T3+summarydf_RNAseq$P_R2_T3+summarydf_RNAseq$P_R4_T3+summarydf_RNAseq$P_R5_T3)/4
-
-summarydf_RNAseq$C_T1_log <- log2(summarydf_RNAseq$C_T1)
-summarydf_RNAseq$C_T3_log <- log2(summarydf_RNAseq$C_T3)
-summarydf_RNAseq$P_T1_log <- log2(summarydf_RNAseq$P_T1)
-summarydf_RNAseq$P_T3_log <- log2(summarydf_RNAseq$P_T3)
-
-summarydf_RNAseq$lfc_time_control <- log2(summarydf_RNAseq$C_T3/summarydf_RNAseq$C_T1)
-summarydf_RNAseq$lfc_time_infection <- log2(summarydf_RNAseq$P_T3/summarydf_RNAseq$P_T1)
-summarydf_RNAseq$lfc_infection <- log2(summarydf_RNAseq$P_T3/summarydf_RNAseq$C_T3)
-
-
-
-summarydf_RNAseq$locus_tag.operon <- substring(summarydf_RNAseq$Geneid, first=6, last=19)
-dfall_down <- left_join(df_down, summarydf_RNAseq, by = "locus_tag.operon")
-dfall_up <- left_join(df_up, summarydf_RNAseq, by = "locus_tag.operon")
-
-
-write.csv(dfall_down, file = "timecourse_down_p0.05_RNAseq.csv", na="")
-write.csv(dfall_up, file = "timecourse_up_p0.05_RNAseq.csv", na="")
-
-```
