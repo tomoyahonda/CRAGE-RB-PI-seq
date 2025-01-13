@@ -1,13 +1,13 @@
 library("Biostrings")
 library("dplyr")
 
-setwd("/Volumes/LaCieOrange/QB3seqdata/Read1")
+setwd("/Volumes//QB3seqdata/Read1")
 df_groupAll_index <- read.csv("promoter_barcode_pairs_G23.csv", header = T)
 df_groupAll_index$promoters = as.character(df_groupAll_index$promoters)
 df_groupAll_index$barcodes = as.character(df_groupAll_index$barcodes)
 
 
-setwd("/Volumes/LaCieOrange/QB3seqdata/Read1/DNA")
+setwd("/Volumes//QB3seqdata/Read1/DNA")
 
 fileNames <- Sys.glob("*.fasta")
 
