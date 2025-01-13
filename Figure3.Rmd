@@ -1,0 +1,529 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+Set working directory:  
+```{r setup}
+knitr::opts_knit$set(root.dir = '~/Desktop/Desktop - Thonda-m80/Berkeley Research/2022.paperdraft/Data_plant_QB3')
+```
+
+
+Read data files with G23 all promoters
+```{r}
+library(dplyr)
+
+DNA_barcodes <- read.csv("DNA_barcodes_allG23.csv", header = T)
+RNA_barcodes <- read.csv("RNA_barcodes_allG23.csv", header = T)
+
+df_barcodes <- left_join(DNA_barcodes, RNA_barcodes, by = c("seqnames",	"promoters",	"barcodes",	"group",	"strand",	"start",	"end",	"length",	"locus_tag.refseq",	"locus_tag.genbank", "Gene.ID.genbank",	"product.refseq",	"product.genbank",	"product.COG",	"Function",	"COG.category",	"KEGG_OID"))
+
+
+df_barcodes[is.na(df_barcodes)] <- 0
+
+df_barcodes1 <- df_barcodes
+for(i in 19:ncol(df_barcodes1)) {  
+  df_barcodes1[ , i] <- df_barcodes1[ , i] / sum(df_barcodes1[ , i]) 
+  sum(df_barcodes1[ , i])
+}
+
+summarydf <- df_barcodes1 %>%
+  group_by(seqnames, promoters,	group,	strand,	start,	end,	length,	locus_tag.refseq,	locus_tag.genbank,	
+                              Gene.ID.genbank,	product.refseq,	product.genbank,	product.COG,	Function,	COG.category,	KEGG_OID) %>% 
+  summarise(across(3:57, sum)) #3 is fixed, 57 = ncol(df_barcodes1) -6
+
+summarydf$C_R1_T1 <- summarydf$RNA_C_R1_T1.fasta / summarydf$DNA_C_R1_T1.fasta
+summarydf$C_R1_T2 <- summarydf$RNA_C_R1_T2.fasta / summarydf$DNA_C_R1_T2.fasta
+summarydf$C_R1_T3 <- summarydf$RNA_C_R1_T3.fasta / summarydf$DNA_C_R1_T3.fasta
+summarydf$C_R2_T1 <- summarydf$RNA_C_R2_T1.fasta / summarydf$DNA_C_R2_T1.fasta
+summarydf$C_R2_T2 <- summarydf$RNA_C_R2_T2.fasta / summarydf$DNA_C_R2_T2.fasta
+summarydf$C_R2_T3 <- summarydf$RNA_C_R2_T3.fasta / summarydf$DNA_C_R2_T3.fasta
+summarydf$C_R3_T1 <- summarydf$RNA_C_R3_T1.fasta / summarydf$DNA_C_R3_T1.fasta
+summarydf$C_R3_T2 <- summarydf$RNA_C_R3_T2.fasta / summarydf$DNA_C_R3_T2.fasta
+summarydf$C_R3_T3 <- summarydf$RNA_C_R3_T3.fasta / summarydf$DNA_C_R3_T3.fasta
+summarydf$C_R4_T1 <- summarydf$RNA_C_R4_T1.fasta / summarydf$DNA_C_R4_T1.fasta
+summarydf$C_R4_T2 <- summarydf$RNA_C_R4_T2.fasta / summarydf$DNA_C_R4_T2.fasta
+summarydf$C_R4_T3 <- summarydf$RNA_C_R4_T3.fasta / summarydf$DNA_C_R4_T3.fasta
+
+summarydf$C_T1 <- (summarydf$C_R1_T1+summarydf$C_R2_T1+summarydf$C_R3_T1+summarydf$C_R4_T1)/4
+summarydf$C_T2 <- (summarydf$C_R1_T2+summarydf$C_R2_T2+summarydf$C_R3_T2+summarydf$C_R4_T2)/4
+summarydf$C_T3 <- (summarydf$C_R1_T3+summarydf$C_R2_T3+summarydf$C_R3_T3+summarydf$C_R4_T3)/4
+
+# write.csv(summarydf, file = "time_course_rawvalues.csv", na="")
+```
+
+
+Limma
+```{r}
+library(edgeR)
+library(limma)
+library(dplyr)
+
+Counts <- 
+  summarydf %>%
+  ungroup() %>%
+  select(promoters,
+         C_R1_T1, C_R1_T2, C_R1_T3,
+         C_R2_T1, C_R2_T2, C_R2_T3,
+         C_R3_T1, C_R3_T2, C_R3_T3,
+         C_R4_T1, C_R4_T2, C_R4_T3)
+
+Counts <- as.data.frame(Counts)
+
+#Change row name to promoter sequences (https://www.biostars.org/p/9494615/#9494958) This links promoter to logFC & p-values in the end.
+rownames(Counts) <- Counts[, 1]
+Counts[, 1] <- NULL
+
+# convert to CPM values with +1
+Counts1 <- Counts
+for(i in 1:ncol(Counts1)) {
+  Counts1[ , i] <- Counts1[ , i] * 1e6 / sum(Counts1[ , i])
+  Counts1[ , i] <- Counts1[ , i] + 1
+  sum(Counts1[ , i])
+}
+
+dge <- DGEList(counts=Counts1)
+dge
+
+group <- as.factor(c("CT1", "CT2", "CT3",
+                     "CT1", "CT2", "CT3",  
+                     "CT1", "CT2", "CT3",  
+                     "CT1", "CT2", "CT3"))
+
+dge$samples$group <- group
+dge$samples
+
+cpm <- cpm(dge)
+lcpm <- cpm(dge, log=TRUE)
+
+table(rowSums(dge$counts==0)==12)
+
+
+# create a design matrix
+design <- model.matrix(~0+group)
+colnames(design) <- gsub("group", "", colnames(design))
+design
+
+# create a contrast matrix for DE comparisons
+contr.matrix <- makeContrasts(
+ CT1vsCT2 = CT2-CT1,
+ CT1vsCT3 = CT3-CT1,
+ CT2vsCT3 = CT3-CT2,
+ levels = colnames(design))
+contr.matrix
+
+##### limma-trend analysis ####
+logCPM <- cpm(dge, log = TRUE, prior.count = 10)
+lmfit <- lmFit(logCPM, design)
+lmfit <- contrasts.fit(lmfit, contrasts=contr.matrix)
+lmfit <- eBayes(lmfit, trend = TRUE, robust=TRUE) # trend = TRUE doesn't yield horizonal line, yet probably the best analysis to eliminate the relation.
+plotSA(lmfit)
+result <- decideTests(lmfit ,adjust.method="BH", lfc = 1, p.value=0.05)
+summary(result)
+```
+
+
+
+KEGG pathway analysis by considering operon structure
+```{r}
+setwd("~/Desktop/Desktop - Thonda-m80/Berkeley Research/Genome WCS417")
+KEGG_ID <- read.csv("OperonID_rockhopper_v4.csv", header = T)
+Promoter_ID <- read.csv("promoter_information.csv", header = T)
+
+# Extract all the statistical values
+CT1vsCT2 <- topTable(lmfit, coef = 1, sort.by = "P", n=Inf, adjust.method = "BH")
+CT1vsCT2$promoters <- rownames(CT1vsCT2)
+rownames(CT1vsCT2) <- NULL
+
+CT1vsCT3 <- topTable(lmfit, coef = 2, sort.by = "P", n=Inf, adjust.method = "BH")
+CT1vsCT3$promoters <- rownames(CT1vsCT3)
+rownames(CT1vsCT3) <- NULL
+
+CT1vsCT2vsCT3 <- left_join(CT1vsCT2, CT1vsCT3, by = "promoters")
+nrow(CT1vsCT2vsCT3)
+
+
+# save the statistics result with promoter information
+df1 <- left_join(CT1vsCT2, Promoter_ID, by = "promoters")
+write.csv(df1, file = "CT1vsCT2_all.csv", na="")
+
+df2 <- left_join(CT1vsCT3, Promoter_ID, by = "promoters")
+write.csv(df2, file = "CT1vsCT3_all.csv", na="")
+
+
+# extract only differentially expressed promoters 
+Day2_down <- subset(CT1vsCT2, CT1vsCT2$logFC<(-1) & CT1vsCT2$adj.P.Val<0.05)
+Day2_up <- subset(CT1vsCT2, CT1vsCT2$logFC>1 & CT1vsCT2$adj.P.Val<0.05)
+nrow(Day2_down)
+nrow(Day2_up)
+
+Day3_down <- subset(CT1vsCT3, CT1vsCT3$logFC<(-1) & CT1vsCT3$adj.P.Val<0.05)
+Day3_up <- subset(CT1vsCT3, CT1vsCT3$logFC>1 & CT1vsCT3$adj.P.Val<0.05)
+nrow(Day3_down)
+nrow(Day3_up)
+
+
+# Analysis of downregulated genes
+Down <- rbind(Day2_down, Day3_down)
+nrow(Down)
+length(unique(Down$promoters))
+
+Down_promoters <- as.data.frame(unique(Down$promoters))
+colnames(Down_promoters)[1] = "promoters"
+nrow(Down_promoters)
+
+df <- left_join(Down_promoters, KEGG_ID, by = "promoters")
+nrow(df)
+df_down <- left_join(df, CT1vsCT2vsCT3, by = "promoters")
+nrow(df_down)
+write.csv(df_down, file = "timecourse_down_p0.05.csv", na="")
+
+
+####### make sure manually curate promoters which are a part of operon #######
+df <- df_down[,c("KEGG_OID")]
+c<- as.vector(df)
+c<- c[c != ""]
+ke_minus <- kegga(c, FDR = 0.05, species.KEGG="ko")
+topKEGG(ke_minus, n=20)
+
+KEGG_Down <- topKEGG(ke_minus, n=20)
+write.csv(KEGG_Down, file = "KEGG_Down.csv", na="")
+
+
+
+
+# Analysis of upregulated genes
+Up <- rbind(Day2_up, Day3_up)
+nrow(Up)
+length(unique(Up$promoters))
+
+Up_promoters <- as.data.frame(unique(Up$promoters))
+colnames(Up_promoters)[1] = "promoters"
+nrow(Up_promoters)
+
+df <- left_join(Up_promoters, KEGG_ID, by = "promoters")
+nrow(df)
+df_up <- left_join(df, CT1vsCT2vsCT3, by = "promoters")
+nrow(df_up)
+write.csv(df_up, file = "timecourse_up_p0.05.csv", na="")
+
+####### make sure manually curate promoters which are a part of operon #######
+df <- df_up[,c("KEGG_OID")]
+c<- as.vector(df)
+c<- c[c != ""]
+ke_up <- kegga(c, FDR = 0.05, species.KEGG="ko")
+topKEGG(ke_up, n=20)
+
+KEGG_Up <- topKEGG(ke_up, n=20)
+write.csv(KEGG_Up, file = "KEGG_Up.csv", na="")
+```
+
+
+
+
+
+plot relative to day3
+```{r}
+# plot all genes with grey color
+Genes <- CT1vsCT2vsCT3$promoters
+nrow(CT1vsCT2vsCT3)
+par(new=FALSE)
+plot(NULL, xaxp = c(1, 3, 2), xlim = c(1,3) ,ylim=c(-4, 4), xaxs ="i", yaxs ="i",cex.axis=1.5, cex.lab=1.5, xlab = "Sampling days", ylab = "log2FC")
+for (i in seq(1, length(Genes))) {
+  df_sub <- subset(CT1vsCT2vsCT3, CT1vsCT2vsCT3$promoters == Genes[i])
+  points(c(1, 2, 3), c(0, df_sub$logFC.x, df_sub$logFC.y), type="l", lwd=1,
+       col="grey", cex=2)
+  par(new=TRUE)
+}
+
+
+#plot upregulated genes
+summarydf_stat <- left_join(Up_promoters, CT1vsCT2vsCT3, by = "promoters")
+nrow(summarydf_stat)
+
+Genes <- summarydf_stat$promoters
+par(new=FALSE)
+for (i in seq(1, length(Genes))) {
+  df_sub <- subset(summarydf_stat, summarydf_stat$promoters == Genes[i])
+  points(c(1, 2, 3), c(0, df_sub$logFC.x, df_sub$logFC.y), type="l", lwd=2,
+       col="red", cex=2)
+  par(new=TRUE)
+}
+
+#plot downregulated genes
+summarydf_stat <- left_join(Down_promoters, CT1vsCT2vsCT3, by = "promoters")
+nrow(summarydf_stat)
+
+Genes <- summarydf_stat$promoters
+par(new=FALSE)
+for (i in seq(1, length(Genes))) {
+  df_sub <- subset(summarydf_stat, summarydf_stat$promoters == Genes[i])
+  points(c(1, 2, 3), c(0, df_sub$logFC.x, df_sub$logFC.y), type="l", lwd=2,
+       col="blue", cex=2)
+  par(new=TRUE)
+}
+```
+
+
+plot relative to day3 for selected promoters
+```{r}
+par(mfrow=c(2,3))
+par(new=FALSE)
+
+# plot biofilm genes
+Genes <- CT1vsCT2vsCT3$promoters
+nrow(CT1vsCT2vsCT3)
+par(new=FALSE)
+plot(NULL, xaxp = c(1, 3, 2), xlim = c(1,3) ,ylim=c(-4, 4), xaxs ="i", yaxs ="i",cex.axis=1.5, cex.lab=1.5, xlab = "Sampling days", ylab = "log2FC", main="Biofilm")
+for (i in seq(1, length(Genes))) {
+  df_sub <- subset(CT1vsCT2vsCT3, CT1vsCT2vsCT3$promoters == Genes[i])
+  points(c(1, 2, 3), c(0, df_sub$logFC.x, df_sub$logFC.y), type="l", lwd=1, 
+       col="grey", cex=2)
+  par(new=TRUE)
+}
+# select biofilm genes
+Selected <- subset(CT1vsCT2vsCT3, 
+                  CT1vsCT2vsCT3$promoters == "GATAAAAAGCGGGAAAAAACGCTGGGCATTAAAGCATTTTTCGACTTGGGGCGTCATTCGCACCTGTTCAACAAGTCGACCGAATGCATGGCGCCCAGCGGCAATCAGGCGGTATGACAGACAAAGCTTTAGGGAGTTTT" | 
+                  CT1vsCT2vsCT3$promoters == "TCAAATGGATAGCTGCATTTGCAATGAAAAGTTGCGTATTACCCAGAGTAGCCAGTTTGTCCAGCGCGCTAAAGCAGCCTGCTGCTTTATTGAACAAACAATCAAACAGCGAAGTCTGGAGTGCAATGAGGGATGTTTTT"  )
+Genes <- Selected$promoters
+par(new=FALSE)
+for (i in seq(1, length(Genes))) {
+  df_sub <- subset(Selected, Selected$promoters == Genes[i])
+  points(c(1, 2, 3), c(0, df_sub$logFC.x, df_sub$logFC.y), type="l", lwd=3,
+       col="red", cex=2)
+  par(new=TRUE)
+}
+
+
+
+# plot SOS genes
+Genes <- CT1vsCT2vsCT3$promoters
+nrow(CT1vsCT2vsCT3)
+par(new=FALSE)
+plot(NULL, xaxp = c(1, 3, 2), xlim = c(1,3) ,ylim=c(-4, 4), xaxs ="i", yaxs ="i",cex.axis=1.5, cex.lab=1.5, xlab = "Sampling days", ylab = "log2FC", main="SOS")
+for (i in seq(1, length(Genes))) {
+  df_sub <- subset(CT1vsCT2vsCT3, CT1vsCT2vsCT3$promoters == Genes[i])
+  points(c(1, 2, 3), c(0, df_sub$logFC.x, df_sub$logFC.y), type="l", lwd=1, 
+       col="grey", cex=2)
+  par(new=TRUE)
+}
+# select SOS genes
+Selected <- subset(CT1vsCT2vsCT3, 
+                  CT1vsCT2vsCT3$promoters == "TCAAAGGTCATAAAAAAGGAACGGCCCAAAACCCCATCAGTCACTACTTAAGCAACTCGATTTCCCAGGTGCCGTGCCTGGGGTTTTGCTCAAACGAGCCGGGGACCGCTCTGGCCACTTTGAATAAGGAGTTTTGTCTG" | 
+                  CT1vsCT2vsCT3$promoters == "CTGACGCCCGGTAAATAACCGGATCTACATGTGGGAGTGGCTTGCTGTGGTGAGCAAGCCCGATCACTGCAAATAGTTAATCGAACTTCTCCTCTGCCAACCGCCTCCTACCTGATAAGCCCATCGCCCCCGGCACGCCC" | 
+                  CT1vsCT2vsCT3$promoters == "GCTACGCCTTGGGTTCGGCTTTCGACACTAAATAGTTTCTCATCAGGTGTAACACGATCTGTCCGCGCATCTGACCGGAGAAACTTTACCCGCCGCTTTCGAGTCACCAGAACACAGCCTCTTCGTAAGGAATCGCACTT")
+Genes <- Selected$promoters
+par(new=FALSE)
+for (i in seq(1, length(Genes))) {
+  df_sub <- subset(Selected, Selected$promoters == Genes[i])
+  points(c(1, 2, 3), c(0, df_sub$logFC.x, df_sub$logFC.y), type="l", lwd=3,
+       col="red", cex=2)
+  par(new=TRUE)
+}
+
+
+
+# plot Defense genes
+Genes <- CT1vsCT2vsCT3$promoters
+nrow(CT1vsCT2vsCT3)
+par(new=FALSE)
+plot(NULL, xaxp = c(1, 3, 2), xlim = c(1,3) ,ylim=c(-4, 4), xaxs ="i", yaxs ="i",cex.axis=1.5, cex.lab=1.5, xlab = "Sampling days", ylab = "log2FC", main="Other defense")
+for (i in seq(1, length(Genes))) {
+  df_sub <- subset(CT1vsCT2vsCT3, CT1vsCT2vsCT3$promoters == Genes[i])
+  points(c(1, 2, 3), c(0, df_sub$logFC.x, df_sub$logFC.y), type="l", lwd=1, 
+       col="grey", cex=2)
+  par(new=TRUE)
+}
+# select SOS genes
+Selected <- subset(CT1vsCT2vsCT3, 
+                  CT1vsCT2vsCT3$promoters == "GCGTTTTTCGTGTGTGCCAAATCAGTGCGTGCCGGAAACTTGCTTGAAGGGGGAGAACTTTTGCGAAAAGACCGAGTCTATGTTTGCAAGCCTGATCGTTTAGTTATGCAAGCCTCCTTAAAGTACAACGAGGAGTGTTC" | 
+                  CT1vsCT2vsCT3$promoters == "ACCCCCCGCAAAACACCCTGACCACGCAACTCAATATCCGCTGATCAATCAGCTTGAACGCTCAATACCCCGGGAAGTCGTACCCCTGAGACGGCGATTTTCCTGAACGCCGCGGATGTAGACCAACCCGTGAGGTGTTT" | 
+                  CT1vsCT2vsCT3$promoters == "GATCAACAAACGCATCGGCAACGAACGGCTGGAGAAATACGACTCCGCGCCCAACGGTCAGGAACAGGGTTGCCCTTGACGGGTCTGATCAACTAACCGACAGCAGCGGCGGCCTCCGGGTCGCGCTGTGAGGATTGGCA")
+Genes <- Selected$promoters
+par(new=FALSE)
+for (i in seq(1, length(Genes))) {
+  df_sub <- subset(Selected, Selected$promoters == Genes[i])
+  points(c(1, 2, 3), c(0, df_sub$logFC.x, df_sub$logFC.y), type="l", lwd=3,
+       col="red", cex=2)
+  par(new=TRUE)
+}
+
+
+
+# plot PGPR genes
+Genes <- CT1vsCT2vsCT3$promoters
+nrow(CT1vsCT2vsCT3)
+par(new=FALSE)
+plot(NULL, xaxp = c(1, 3, 2), xlim = c(1,3) ,ylim=c(-4, 4), xaxs ="i", yaxs ="i",cex.axis=1.5, cex.lab=1.5, xlab = "Sampling days", ylab = "log2FC", main="Plant growth promotion")
+for (i in seq(1, length(Genes))) {
+  df_sub <- subset(CT1vsCT2vsCT3, CT1vsCT2vsCT3$promoters == Genes[i])
+  points(c(1, 2, 3), c(0, df_sub$logFC.x, df_sub$logFC.y), type="l", lwd=1, 
+       col="grey", cex=2)
+  par(new=TRUE)
+}
+# select SOS genes
+Selected <- subset(CT1vsCT2vsCT3, 
+                  CT1vsCT2vsCT3$promoters == "CCCAGCATGCGGCGTTGCGCAAAAAGGGCTGACGGCGGCAAAAACTACTACTTTAGTACTGGTTTTCCTGTCTATCGTCGCATTCCCAAGGGCTCGGGACTCACGTGTAATGCGCGCATAACGATAAGGATCGCCCTGCC" | 
+                  CT1vsCT2vsCT3$promoters == "GCGGCGGGTAAAGTTTCTCCGGTCAGATGCGCGGACAGATCGTGTTACACCTGATGAGAAACTATTTAGTGTCGAAAGCCGAACCCAAGGCGTAGCGTGTTATCGAAAGCACGTACTCCTCGCCCCAGAGAGGCTTCGTC")
+Genes <- Selected$promoters
+par(new=FALSE)
+for (i in seq(1, length(Genes))) {
+  df_sub <- subset(Selected, Selected$promoters == Genes[i])
+  points(c(1, 2, 3), c(0, df_sub$logFC.x, df_sub$logFC.y), type="l", lwd=3,
+       col="red", cex=2)
+  par(new=TRUE)
+}
+
+
+
+# plot biomass genes
+Genes <- CT1vsCT2vsCT3$promoters
+nrow(CT1vsCT2vsCT3)
+par(new=FALSE)
+plot(NULL, xaxp = c(1, 3, 2), xlim = c(1,3) ,ylim=c(-4, 4), xaxs ="i", yaxs ="i",cex.axis=1.5, cex.lab=1.5, xlab = "Sampling days", ylab = "log2FC", main="Biomass production")
+for (i in seq(1, length(Genes))) {
+  df_sub <- subset(CT1vsCT2vsCT3, CT1vsCT2vsCT3$promoters == Genes[i])
+  points(c(1, 2, 3), c(0, df_sub$logFC.x, df_sub$logFC.y), type="l", lwd=1, 
+       col="grey", cex=2)
+  par(new=TRUE)
+}
+# select SOS genes
+Selected <- subset(CT1vsCT2vsCT3, 
+                  CT1vsCT2vsCT3$promoters == "AATTTGCAAGATTCGTCAAAAACCCTGGATTTTGGTCGGATTGTCCTACAAAAACGCTCTATCTCCTGCATTACAGCCTATAGCGCGATCTTAATTTTATTGTTACTTTCCGCAGCGGTGATCACCACGGAGTTCTAATA" | 
+                  CT1vsCT2vsCT3$promoters == "GCCAAGGCTGAGTGTGATCCGCTTGAAGCCCGGCAGCTAGTGCGCTGCCGGGTTGATTATTTGTTATTACAGCGATATTATCTCGCGCCCTATTTCTTGGCTTCCGGGGCGTAGGTAGCTGTCAATTGGAGTCCCACTGA" | 
+                  CT1vsCT2vsCT3$promoters == "AGATCTGAGTGGCACGCTGATAGGCGCCAGAAAAAGACATTTGCAAAAGTCCGGATATTCCTTAGAATATGCGGCCTTTCGGGCACCTATGCCCGCTGTGCATTTAGATTTGCAGCACCGACTACAGGAACGATGTTCAC" | 
+                  CT1vsCT2vsCT3$promoters == "CACGGTTTTCTGATGAAAGGAGGTTTTCAGTCGAATACGCGGCTTGCGTGATTAAAAAGGTCTGGTAGAATCCGCGGCCTAATTACGTGCGGTATTCGACAATAGTGTCGAGTGGCGGCACGCTAGCCCGAGGAAGTGCC" | 
+                  CT1vsCT2vsCT3$promoters == "GCCGTGAACAATTTTTTACCAATATTTGCTAGAACCCCACGGCACCGGGATAATGCGCACCACTCGGCTATTGCTCCCTGTCCCGGTATTCGGGGCCAAAAGCCGCACATGGAAGCCCGCAGGGGCGGGATAACTTCTCA")
+Genes <- Selected$promoters
+par(new=FALSE)
+for (i in seq(1, length(Genes))) {
+  df_sub <- subset(Selected, Selected$promoters == Genes[i])
+  points(c(1, 2, 3), c(0, df_sub$logFC.x, df_sub$logFC.y), type="l", lwd=3,
+       col="blue", cex=2)
+  par(new=TRUE)
+}
+```
+
+
+
+
+
+
+
+
+Read dualRNAseq data tombine with Piseq data
+```{r}
+#read RNAseq file for glycerol
+setwd("~/Desktop/Desktop - Thonda-m80/Berkeley Research/2022.paperdraft/dualRNAseq")
+summarydf_RNAseq <- read.table("X_CountSummary_bacterial_mRNA.txt", header = T, sep = "\t", quote="")
+names(summarydf_RNAseq)[3] <- "start"
+```
+
+Limma
+```{r}
+Counts <- 
+  summarydf_RNAseq %>%
+  ungroup() %>%
+  select(start,
+         C_R1_T1.bam, C_R1_T3.bam,
+         C_R2_T1.bam, C_R2_T3.bam,
+         C_R3_T1.bam, C_R3_T3.bam,
+         C_R4_T1.bam, C_R4_T3.bam,
+         P_R1_T1.bam, P_R1_T3.bam,
+                      P_R2_T3.bam,
+         P_R3_T1.bam,
+         P_R4_T1.bam, P_R4_T3.bam,
+         P_R5_T1.bam, P_R5_T3.bam)
+
+Counts <- as.data.frame(Counts)
+
+#Change row name to promoter sequences (https://www.biostars.org/p/9494615/#9494958) This links promoter to logFC & p-values in the end.
+rownames(Counts) <- Counts[, 1]
+Counts[, 1] <- NULL
+
+# convert to CPM values with +1
+Counts1 <- Counts
+for(i in 1:ncol(Counts1)) {
+  Counts1[ , i] <- Counts1[ , i] * 1e6 / sum(Counts1[ , i])
+  Counts1[ , i] <- Counts1[ , i] + 1
+  sum(Counts1[ , i])
+}
+
+dge <- DGEList(counts=Counts1)
+dge
+
+group <- as.factor(c("CT1", "CT3",
+                     "CT1", "CT3",  
+                     "CT1", "CT3",  
+                     "CT1", "CT3",
+                     "PT1", "PT3",
+                            "PT3",  
+                     "PT1",  
+                     "PT1", "PT3",
+                     "PT1", "PT3"))
+
+dge$samples$group <- group
+dge$samples
+
+cpm <- cpm(dge)
+lcpm <- cpm(dge, log=TRUE)
+
+table(rowSums(dge$counts==0)==9)
+
+
+# create a design matrix
+design <- model.matrix(~0+group)
+colnames(design) <- gsub("group", "", colnames(design))
+design
+
+# create a contrast matrix for DE comparisons
+contr.matrix <- makeContrasts(
+ CT1vsCT3 = CT3-CT1,
+ PT1vsPT3 = PT3-PT1,
+ CT3vsPT3 = PT3-CT3,
+ levels = colnames(design))
+contr.matrix
+
+##### limma-trend analysis ####
+logCPM <- cpm(dge, log = TRUE, prior.count = 10)
+lmfit <- lmFit(logCPM, design)
+lmfit <- contrasts.fit(lmfit, contrasts=contr.matrix)
+lmfit <- eBayes(lmfit, trend = TRUE, robust=TRUE) # trend = TRUE doesn't yield horizonal line, yet probably the best analysis to eliminate the relation.
+plotSA(lmfit)
+result <- decideTests(lmfit ,adjust.method="BH", lfc = 1, p.value=0.05)
+summary(result)
+```
+
+```{r}
+for(i in 8:ncol(summarydf_RNAseq)) {
+  summarydf_RNAseq[ , i] <- summarydf_RNAseq[ , i] * 1e6 / sum(summarydf_RNAseq[ , i])
+  summarydf_RNAseq[ , i] <- summarydf_RNAseq[ , i] + 1
+  sum(summarydf_RNAseq[ , i])
+}
+
+summarydf_RNAseq$C_T1 <- (summarydf_RNAseq$C_R1_T1+summarydf_RNAseq$C_R2_T1+summarydf_RNAseq$C_R3_T1+summarydf_RNAseq$C_R4_T1)/4
+summarydf_RNAseq$C_T3 <- (summarydf_RNAseq$C_R1_T3+summarydf_RNAseq$C_R2_T3+summarydf_RNAseq$C_R3_T3+summarydf_RNAseq$C_R4_T3)/4
+summarydf_RNAseq$P_T1 <- (summarydf_RNAseq$P_R1_T1+summarydf_RNAseq$P_R3_T1+summarydf_RNAseq$P_R4_T1+summarydf_RNAseq$P_R5_T1)/4
+summarydf_RNAseq$P_T3 <- (summarydf_RNAseq$P_R1_T3+summarydf_RNAseq$P_R2_T3+summarydf_RNAseq$P_R4_T3+summarydf_RNAseq$P_R5_T3)/4
+
+summarydf_RNAseq$C_T1_log <- log2(summarydf_RNAseq$C_T1)
+summarydf_RNAseq$C_T3_log <- log2(summarydf_RNAseq$C_T3)
+summarydf_RNAseq$P_T1_log <- log2(summarydf_RNAseq$P_T1)
+summarydf_RNAseq$P_T3_log <- log2(summarydf_RNAseq$P_T3)
+
+summarydf_RNAseq$lfc_time_control <- log2(summarydf_RNAseq$C_T3/summarydf_RNAseq$C_T1)
+summarydf_RNAseq$lfc_time_infection <- log2(summarydf_RNAseq$P_T3/summarydf_RNAseq$P_T1)
+summarydf_RNAseq$lfc_infection <- log2(summarydf_RNAseq$P_T3/summarydf_RNAseq$C_T3)
+
+
+
+summarydf_RNAseq$locus_tag.operon <- substring(summarydf_RNAseq$Geneid, first=6, last=19)
+dfall_down <- left_join(df_down, summarydf_RNAseq, by = "locus_tag.operon")
+dfall_up <- left_join(df_up, summarydf_RNAseq, by = "locus_tag.operon")
+
+
+write.csv(dfall_down, file = "timecourse_down_p0.05_RNAseq.csv", na="")
+write.csv(dfall_up, file = "timecourse_up_p0.05_RNAseq.csv", na="")
+
+```
