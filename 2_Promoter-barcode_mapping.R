@@ -1,3 +1,4 @@
+# this is an exmaple for analyzing group1 data. repeat same for group2 and group3
 library("Biostrings")
 library("dplyr")
 
