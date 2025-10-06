@@ -1,0 +1,867 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+Read data files with G23 all promoters
+```{r}
+library(dplyr)
+
+DNA_barcodes <- read.csv("DNA_barcodes_agar.csv", header = T)
+RNA_barcodes <- read.csv("RNA_barcodes_agar.csv", header = T)
+
+df_barcodes <- left_join(DNA_barcodes, RNA_barcodes, by = c("seqnames",	"promoters",	"barcodes",	"group",	"strand",	"start",	"end",	"length",	"locus_tag.refseq",	"locus_tag.genbank", "Gene.ID.genbank",	"product.refseq",	"product.genbank",	"product.COG",	"Function",	"COG.category",	"KEGG_OID"))
+
+
+df_barcodes[is.na(df_barcodes)] <- 0
+
+df_barcodes1 <- df_barcodes
+for(i in 19:ncol(df_barcodes1)) {  
+  df_barcodes1[ , i] <- df_barcodes1[ , i] / sum(df_barcodes1[ , i]) 
+  sum(df_barcodes1[ , i])
+}
+
+summarydf <- df_barcodes1 %>%
+  group_by(seqnames, promoters,	group,	strand,	start,	end,	length,	locus_tag.refseq,	locus_tag.genbank,	
+                              Gene.ID.genbank,	product.refseq,	product.genbank,	product.COG,	Function,	COG.category,	KEGG_OID) %>% 
+  summarise(across(3:83, sum)) 
+
+summarydf$zero_R1 <- summarydf$RNA_0hr_R1.fasta / summarydf$DNA_0hr_R1.fasta
+summarydf$zero_R2 <- summarydf$RNA_0hr_R2.fasta / summarydf$DNA_0hr_R2.fasta
+summarydf$zero_R3 <- summarydf$RNA_0hr_R3.fasta / summarydf$DNA_0hr_R3.fasta
+summarydf$zero_R4 <- summarydf$RNA_0hr_R4.fasta / summarydf$DNA_0hr_R4.fasta
+
+summarydf$three_R1 <- summarydf$RNA_3hr_R1.fasta / summarydf$DNA_3hr_R1.fasta
+summarydf$three_R2 <- summarydf$RNA_3hr_R2.fasta / summarydf$DNA_3hr_R2.fasta
+summarydf$three_R3 <- summarydf$RNA_3hr_R3.fasta / summarydf$DNA_3hr_R3.fasta
+summarydf$three_R4 <- summarydf$RNA_3hr_R4.fasta / summarydf$DNA_3hr_R4.fasta
+
+summarydf$D1_R1 <- summarydf$RNA_D1_R1.fasta / summarydf$DNA_D1_R1.fasta
+summarydf$D1_R2 <- summarydf$RNA_D1_R2.fasta / summarydf$DNA_D1_R2.fasta
+summarydf$D1_R3 <- summarydf$RNA_D1_R3.fasta / summarydf$DNA_D1_R3.fasta
+summarydf$D1_R4 <- summarydf$RNA_D1_R4.fasta / summarydf$DNA_D1_R4.fasta
+
+summarydf$D2_R1 <- summarydf$RNA_D2_R1.fasta / summarydf$DNA_D2_R1.fasta
+summarydf$D2_R2 <- summarydf$RNA_D2_R2.fasta / summarydf$DNA_D2_R2.fasta
+summarydf$D2_R3 <- summarydf$RNA_D2_R3.fasta / summarydf$DNA_D2_R3.fasta
+summarydf$D2_R4 <- summarydf$RNA_D2_R4.fasta / summarydf$DNA_D2_R4.fasta
+
+summarydf$D3_R1 <- summarydf$RNA_D3_R1.fasta / summarydf$DNA_D3_R1.fasta
+summarydf$D3_R2 <- summarydf$RNA_D3_R2.fasta / summarydf$DNA_D3_R2.fasta
+summarydf$D3_R3 <- summarydf$RNA_D3_R3.fasta / summarydf$DNA_D3_R3.fasta
+summarydf$D3_R4 <- summarydf$RNA_D3_R4.fasta / summarydf$DNA_D3_R4.fasta
+
+summarydf$D5_R1 <- summarydf$RNA_D5_R1.fasta / summarydf$DNA_D5_R1.fasta
+summarydf$D5_R2 <- summarydf$RNA_D5_R2.fasta / summarydf$DNA_D5_R2.fasta
+summarydf$D5_R3 <- summarydf$RNA_D5_R3.fasta / summarydf$DNA_D5_R3.fasta
+summarydf$D5_R4 <- summarydf$RNA_D5_R4.fasta / summarydf$DNA_D5_R4.fasta
+
+summarydf$D7_R1 <- summarydf$RNA_D7_R1.fasta / summarydf$DNA_D7_R1.fasta
+summarydf$D7_R2 <- summarydf$RNA_D7_R2.fasta / summarydf$DNA_D7_R2.fasta
+summarydf$D7_R3 <- summarydf$RNA_D7_R3.fasta / summarydf$DNA_D7_R3.fasta
+summarydf$D7_R4 <- summarydf$RNA_D7_R4.fasta / summarydf$DNA_D7_R4.fasta
+
+summarydf$glu_R1 <- summarydf$RNA_glu_R1.fasta / summarydf$DNA_glu_R1.fasta
+summarydf$glu_R2 <- summarydf$RNA_glu_R2.fasta / summarydf$DNA_glu_R2.fasta
+summarydf$glu_R3 <- summarydf$RNA_glu_R3.fasta / summarydf$DNA_glu_R3.fasta
+summarydf$glu_R4 <- summarydf$RNA_glu_R4.fasta / summarydf$DNA_glu_R4.fasta
+
+
+summarydf$zero <- (summarydf$zero_R1+summarydf$zero_R2+summarydf$zero_R3+summarydf$zero_R4)/4
+summarydf$three <- (summarydf$three_R1+summarydf$three_R2+summarydf$three_R3+summarydf$three_R4)/4
+summarydf$D1 <- (summarydf$D1_R1+summarydf$D1_R2+summarydf$D1_R3+summarydf$D1_R4)/4
+summarydf$D2 <- (summarydf$D2_R1+summarydf$D2_R2+summarydf$D2_R3+summarydf$D2_R4)/4
+summarydf$D3 <- (summarydf$D3_R1+summarydf$D3_R2+summarydf$D3_R3+summarydf$D3_R4)/4
+summarydf$D5 <- (summarydf$D5_R1+summarydf$D5_R2+summarydf$D5_R3+summarydf$D5_R4)/4
+summarydf$D7 <- (summarydf$D7_R1+summarydf$D7_R2+summarydf$D7_R3+summarydf$D7_R4)/4
+summarydf$glu <- (summarydf$glu_R1+summarydf$glu_R2+summarydf$glu_R3+summarydf$glu_R4)/4
+```
+
+
+```{r}
+# Load libraries
+library(edgeR)
+library(limma)
+library(dplyr)
+
+# Extract promoter and raw ratio counts for replicates (before averaging)
+Counts <- summarydf %>%
+  ungroup() %>%
+  select(promoters,
+         zero_R1, zero_R2, zero_R3, zero_R4,
+         three_R1, three_R2, three_R3, three_R4,
+         D1_R1, D1_R2, D1_R3, D1_R4,
+         D2_R1, D2_R2, D2_R3, D2_R4,
+         D3_R1, D3_R2, D3_R3, D3_R4,
+         D5_R1, D5_R2, D5_R3, D5_R4,
+         D7_R1, D7_R2, D7_R3, D7_R4,
+         glu_R1, glu_R2, glu_R3, glu_R4)
+
+# Set promoters as row names and remove that column
+Counts <- as.data.frame(Counts)
+rownames(Counts) <- Counts$promoters
+Counts$promoters <- NULL
+
+# Create DGEList object
+dge <- DGEList(counts = Counts)
+
+# Define group labels
+group <- factor(rep(c("zero", "three", "D1", "D2", "D3", "D5", "D7", "glu"), each = 4))
+dge$samples$group <- group
+
+# Calculate normalization factors
+dge <- calcNormFactors(dge)
+
+# Design matrix
+design <- model.matrix(~ 0 + group)
+colnames(design) <- levels(group)
+
+# Define contrasts
+contr.matrix <- makeContrasts(
+  zero_vs_glu = zero - glu,
+  three_vs_glu = three - glu,
+  D1_vs_glu = D1 - glu,
+  D2_vs_glu = D2 - glu,
+  D3_vs_glu = D3 - glu,
+  D5_vs_glu = D5 - glu,
+  D7_vs_glu = D7 - glu,
+  levels = colnames(design)
+)
+
+# Apply voom transformation
+v <- voom(dge, design, plot = TRUE)
+
+# Fit linear model
+fit <- lmFit(v, design)
+fit <- contrasts.fit(fit, contrasts = contr.matrix)
+fit <- eBayes(fit, trend = TRUE, robust = TRUE)
+
+# Mean-variance trend plot
+plotSA(fit)
+
+# Summary of results
+results <- decideTests(fit, adjust.method = "BH", lfc = 1, p.value = 0.05)
+summary(results)
+
+```
+
+PCA plot
+```{r}
+# Load libraries
+library(ggplot2)
+library(RColorBrewer)
+
+# Step 1: Define replicate columns (in time order)
+rep_cols <- c("glu_R1", "glu_R2", "glu_R3", "glu_R4",
+              "zero_R1", "zero_R2", "zero_R3", "zero_R4",
+              "three_R1", "three_R2", "three_R3", "three_R4",
+              "D1_R1", "D1_R2", "D1_R3", "D1_R4",
+              "D2_R1", "D2_R2", "D2_R3", "D2_R4",
+              "D3_R1", "D3_R2", "D3_R3", "D3_R4",
+              "D5_R1", "D5_R2", "D5_R3", "D5_R4",
+              "D7_R1", "D7_R2", "D7_R3", "D7_R4")
+
+# Step 2: Extract promoter activity matrix (RNA/DNA ratios)
+pca_matrix <- summarydf[, rep_cols]
+
+# Step 3: Remove rows with missing/infinite values
+pca_matrix <- pca_matrix[
+  complete.cases(pca_matrix) & 
+  apply(pca_matrix, 1, function(x) all(is.finite(x))), 
+]
+
+# Step 4: Transpose (samples as rows, promoters as columns)
+pca_input <- t(pca_matrix)
+
+# Step 5: Remove zero-variance columns (promoters)
+pca_input <- pca_input[, apply(pca_input, 2, function(x) var(x) > 0)]
+
+# Step 6: Run PCA
+pca_result <- prcomp(pca_input, center = TRUE, scale. = TRUE)
+
+# Step 7: Get sample names and condition labels
+sample_names <- rownames(pca_input)
+condition_labels <- gsub("_R[1-4]", "", sample_names)
+
+# Step 8: Set custom factor levels for consistent color mapping
+condition_levels <- c("glu", "zero", "three", "D1", "D2", "D3", "D5", "D7")
+condition_labels <- factor(condition_labels, levels = condition_levels)
+
+# Step 9: Create PCA data frame
+pca_df <- data.frame(
+  Sample = sample_names,
+  Condition = condition_labels,
+  PC1 = pca_result$x[, 1],
+  PC2 = pca_result$x[, 2]
+)
+
+# Step 10: Define brown → blue gradient palette
+palette <- colorRampPalette(c("#8c510a", "#f6e8c3", "#01665e"))(length(condition_levels))
+
+# Step 11: PCA plot with filled circles
+ggplot(pca_df, aes(x = PC1, y = PC2, fill = Condition)) +
+  geom_point(size = 4, shape = 21, stroke = 0.5, color = "black") +
+  stat_ellipse(aes(color = Condition), type = "norm", level = 0.68, size = 1, linetype = "dashed", show.legend = FALSE) +
+  scale_fill_manual(values = palette) +
+  scale_color_manual(values = palette) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "PCA of Promoter Activity (RNA/DNA Ratios)",
+    x = paste0("PC1 (", round(summary(pca_result)$importance[2, 1] * 100, 1), "% variance)"),
+    y = paste0("PC2 (", round(summary(pca_result)$importance[2, 2] * 100, 1), "% variance)")
+  ) +
+  guides(fill = guide_legend(override.aes = list(shape = 21))) +
+  theme(
+    axis.title = element_text(size = 20),
+    axis.text = element_text(size = 20),
+    legend.title = element_text(size = 20),
+    legend.text = element_text(size = 20)
+  )
+```
+
+
+heat map
+```{r}
+# Required packages
+library(pheatmap)
+library(RColorBrewer)
+
+# Extract voom logCPM expression matrix
+logCPM <- v$E  # voom-transformed log2 CPM values
+
+# Z-score normalization per gene (row-wise)
+z_scores <- t(scale(t(logCPM)))
+
+# Select DEGs (adjusted p < 0.05, |log2FC| > 1 in any contrast)
+deg_genes <- rownames(logCPM)[which(rowSums(abs(results) > 0) > 0)]
+
+# Subset z-score matrix to DEGs
+z_scores_sub <- z_scores[deg_genes, ]
+
+# Desired sample order
+sample_order <- c(
+  "glu_R1", "glu_R2", "glu_R3", "glu_R4",
+  "zero_R1", "zero_R2", "zero_R3", "zero_R4",
+  "three_R1", "three_R2", "three_R3", "three_R4",
+  "D1_R1", "D1_R2", "D1_R3", "D1_R4",
+  "D2_R1", "D2_R2", "D2_R3", "D2_R4",
+  "D3_R1", "D3_R2", "D3_R3", "D3_R4",
+  "D5_R1", "D5_R2", "D5_R3", "D5_R4",
+  "D7_R1", "D7_R2", "D7_R3", "D7_R4"
+)
+
+# Reorder columns
+z_scores_ordered <- z_scores_sub[, sample_order]
+
+# Step 1: Generate the heatmap object silently
+heatmap_result <- pheatmap(z_scores_ordered,
+                           cluster_rows = TRUE,
+                           cluster_cols = FALSE,
+                           show_rownames = FALSE,
+                           fontsize_col = 8,
+                           silent = TRUE)
+
+# Step 2: Cut into 5 clusters
+gene_clusters <- cutree(heatmap_result$tree_row, k = 5)
+
+# Step 3: Reorder cluster numbers from top to bottom
+gene_order <- heatmap_result$tree_row$order
+ordered_clusters <- gene_clusters[gene_order]
+
+# Get gene names in order
+ordered_genes <- rownames(z_scores_ordered)[gene_order]
+
+# Calculate mean position of each cluster in the ordered heatmap
+cluster_mean_pos <- tapply(seq_along(ordered_clusters), ordered_clusters, mean)
+
+# Assign new cluster IDs from top to bottom
+cluster_map <- setNames(rank(cluster_mean_pos), names(cluster_mean_pos))
+
+# Apply the new cluster labels
+gene_clusters_renumbered <- cluster_map[as.character(gene_clusters)]
+
+# Ensure row names match genes and are unique
+annotation_row <- data.frame(Cluster = factor(gene_clusters_renumbered, levels = 1:5))
+rownames(annotation_row) <- rownames(z_scores_ordered)
+
+# Step 4: Define high-contrast cluster colors
+cluster_colors <- c(
+  "1" = "#984ea3",  
+  "2" = "#ff7f00",  
+  "3" = "#4daf4a",  
+  "4" = "#377eb8",  
+  "5" = "#e41a1c"   
+)
+
+
+ann_colors <- list(Cluster = cluster_colors)
+
+pheatmap(z_scores_ordered,
+         cluster_rows = TRUE,
+         cluster_cols = FALSE,
+         show_rownames = FALSE,
+         fontsize_col = 8,
+         main = "Z-score Normalized Expression (DEGs)",
+         annotation_row = annotation_row,
+         annotation_colors = ann_colors)
+
+# Desired cluster order from top to bottom
+original_order <- c(3, 2, 1, 5, 4)
+
+# Create a mapping: top cluster -> 1, next -> 2, etc.
+new_labels <- setNames(1:5, original_order)
+
+# Re-map cluster numbers in annotation_row
+annotation_row$Cluster <- factor(new_labels[as.character(annotation_row$Cluster)],
+                                 levels = 1:5)
+
+# Reorder rows in z-score matrix according to cluster order
+ordered_genes_by_cluster <- unlist(lapply(original_order, function(cl){
+    rownames(z_scores_ordered)[annotation_row$Cluster == new_labels[as.character(cl)]]
+}))
+
+# Subset matrices/data.frames safely
+z_scores_reordered <- z_scores_ordered[ordered_genes_by_cluster, , drop = FALSE]
+annotation_row_reordered <- annotation_row[ordered_genes_by_cluster, , drop = FALSE]
+
+# Plot heatmap
+pheatmap(z_scores_reordered,
+         cluster_rows = FALSE,  # keep the cluster order fixed
+         cluster_cols = FALSE,
+         show_rownames = FALSE,
+         fontsize_col = 8,
+         main = "DEGs: Clusters renumbered 1–5 top to bottom",
+         annotation_row = annotation_row_reordered,
+         annotation_colors = ann_colors)
+
+# Count genes in each cluster according to the new order
+cluster_counts_ordered <- table(annotation_row$Cluster)
+
+# To show in top-to-bottom order of your heatmap
+cluster_counts_ordered <- cluster_counts_ordered[as.character(1:5)]
+cluster_counts_ordered
+```
+
+
+Mean expression time course
+```{r}
+# ===============================
+# Required libraries
+# ===============================
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# ===============================
+# 1. Subset logCPM matrix to clustered DEGs (same order as heatmap)
+# ===============================
+logCPM_sub <- logCPM[rownames(z_scores_reordered), ]  # match exactly to reordered heatmap
+
+# ===============================
+# 2. Cluster assignment consistent with reordered heatmap
+# ===============================
+cluster_df <- data.frame(
+  Gene = rownames(logCPM_sub),
+  Cluster = annotation_row_reordered$Cluster  # factor 1-5 from top to bottom
+)
+
+# ===============================
+# 3. Reshape logCPM data to long format
+# ===============================
+logCPM_long <- as.data.frame(logCPM_sub)
+logCPM_long$Gene <- rownames(logCPM_long)
+logCPM_long <- pivot_longer(logCPM_long,
+                            cols = -Gene,
+                            names_to = "Sample",
+                            values_to = "logCPM")
+
+# ===============================
+# 4. Add cluster and timepoint info
+# ===============================
+logCPM_long <- left_join(logCPM_long, cluster_df, by = "Gene")
+logCPM_long$Timepoint <- gsub("_R[1-4]", "", logCPM_long$Sample)
+
+# ===============================
+# 5. Set timepoint order
+# ===============================
+logCPM_long$Timepoint <- factor(logCPM_long$Timepoint,
+                                levels = c("glu", "zero", "three", "D1", "D2", "D3", "D5", "D7"))
+
+# ===============================
+# 6. Summarize mean and SD logCPM for each cluster/timepoint
+# ===============================
+cluster_summary <- logCPM_long %>%
+  group_by(Cluster, Timepoint) %>%
+  summarise(
+    mean_logCPM = mean(logCPM, na.rm = TRUE),
+    sd_logCPM = sd(logCPM, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# ===============================
+# 7. Define cluster colors consistent with reordered heatmap
+# ===============================
+# Flip colors of cluster 1 and 3 to match heatmap
+cluster_colors <- c(
+  "1" = "#984ea3",  # purple (was cluster 5)
+  "2" = "#ff7f00",  # orange (was cluster 4)
+  "3" = "#4daf4a",  # green  (was cluster 3, stays)
+  "4" = "#377eb8",  # blue   (was cluster 2)
+  "5" = "#e41a1c"   # red    (was cluster 1)
+)
+
+# ===============================
+# 8. Plot mean logCPM with error bars
+# ===============================
+ggplot(cluster_summary, aes(x = Timepoint, y = mean_logCPM, color = Cluster, group = Cluster)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = mean_logCPM - sd_logCPM,
+                    ymax = mean_logCPM + sd_logCPM),
+                width = 0.2) +
+  facet_wrap(~ Cluster, scales = "fixed", ncol = 1) +  # one column
+  scale_color_manual(values = cluster_colors) +
+  theme_minimal(base_size = 14) +
+  coord_cartesian(ylim = c(7, 12)) +  # adjust if needed
+  labs(
+    title = "Mean Expression (logCPM) per Cluster Over Time",
+    x = "Timepoint",
+    y = "Mean logCPM"
+  ) +
+  # ensure facet order is top-to-bottom 1→5
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.05)))
+```
+
+
+Show selected promoters
+```{r}
+# Define locus tag groups
+group_A <- c("PS417_RS10765", "PS417_RS10785", "PS417_RS10720")
+group_B <- c("PS417_RS21405", "PS417_RS14920", "PS417_RS27325")
+group_C <- c("PS417_RS04040", "PS417_RS02110")
+
+# Combine all and assign group labels
+all_loci <- c(group_A, group_B, group_C)
+locus_group_map <- data.frame(
+  Locus = all_loci,
+  Group = c(rep("Group A", length(group_A)),
+            rep("Group B", length(group_B)),
+            rep("Group C", length(group_C)))
+)
+
+# Map promoters to locus tags
+promoter_to_locus <- summarydf %>%
+  select(promoters, locus_tag.refseq) %>%
+  distinct()
+
+promoters_all <- promoter_to_locus %>%
+  filter(locus_tag.refseq %in% all_loci)
+
+# Extract expression
+logCPM_all <- logCPM[promoters_all$promoters, , drop = FALSE]
+rownames(logCPM_all) <- promoter_to_locus$locus_tag.refseq[
+  match(rownames(logCPM_all), promoter_to_locus$promoters)
+]
+
+# Reshape and summarize
+library(dplyr)
+library(tidyr)
+
+highlight_df <- as.data.frame(logCPM_all)
+highlight_df$Locus <- rownames(highlight_df)
+
+df_long <- pivot_longer(highlight_df, cols = -Locus, names_to = "Sample", values_to = "logCPM")
+df_long$Timepoint <- gsub("_R[1-4]", "", df_long$Sample)
+df_long$Timepoint <- factor(df_long$Timepoint,
+                            levels = c("glu", "zero", "three", "D1", "D2", "D3", "D5", "D7"))
+
+# Add group label
+df_long <- left_join(df_long, locus_group_map, by = "Locus")
+
+# Summarize mean ± SD
+df_summary <- df_long %>%
+  group_by(Group, Locus, Timepoint) %>%
+  summarise(
+    mean_logCPM = mean(logCPM, na.rm = TRUE),
+    sd_logCPM = sd(logCPM, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+
+
+df_summary$Panel <- df_summary$Group  # Use Group A/B/C directly as facet panels
+
+# Assign custom y-axis limits per panel
+df_summary$ymin_panel <- 6
+df_summary$ymax_panel <- ifelse(df_summary$Group == "Group A", 16, 11)
+
+
+# Define shape assignments manually
+shape_map <- c(
+  "PS417_RS10765" = 16,  # circle
+  "PS417_RS10785" = 15,  # square
+  "PS417_RS10720" = 17,  # triangle
+  "PS417_RS21405" = 16,
+  "PS417_RS14920" = 15,
+  "PS417_RS27325" = 17,
+  "PS417_RS04040" = 8,
+  "PS417_RS02110" = 18
+)
+
+
+ggplot(df_summary, aes(x = Timepoint, y = mean_logCPM, group = Locus)) +
+  geom_blank(aes(y = ymin_panel)) +
+  geom_blank(aes(y = ymax_panel)) +
+  geom_line(aes(color = Group), size = 1) +
+  geom_point(aes(color = Group, shape = Locus), size = 4, stroke = 1.2) +  # larger shape
+  geom_errorbar(aes(ymin = mean_logCPM - sd_logCPM,
+                    ymax = mean_logCPM + sd_logCPM,
+                    color = Group),
+                width = 0.2) +
+  facet_wrap(~ Panel, scales = "free_y", nrow = 1) +
+  scale_color_manual(values = c(
+    "Group A" = "#377eb8",
+    "Group B" = "#e41a1c",
+    "Group C" = "#e41a1c"
+  )) +
+  scale_shape_manual(values = shape_map) +  # use shape map
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Expression (logCPM) of Gene Groups",
+    x = "Timepoint",
+    y = "log2 CPM",
+    shape = "Locus Tag"
+  ) +
+  theme(
+    strip.text = element_text(size = 14, face = "bold"),
+    legend.position = "right",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10)
+  )
+
+```
+
+
+Summary sheet 
+```{r}
+# 1. Check total number of DEGs
+length(deg_genes)
+
+# 2. Check number of genes per cluster (after re-numbering top-to-bottom)
+table(gene_clusters_renumbered)
+
+# Load required libraries
+library(dplyr)
+library(limma)
+library(pheatmap)
+library(RColorBrewer)
+
+# Extract voom logCPM matrix
+logCPM <- v$E
+z_scores <- t(scale(t(logCPM)))
+
+# Get DEG list (significant in any contrast)
+deg_genes <- rownames(logCPM)[rowSums(abs(results) > 0) > 0]
+z_scores_sub <- z_scores[deg_genes, ]
+
+# Desired sample order
+sample_order <- c(
+  "glu_R1", "glu_R2", "glu_R3", "glu_R4",
+  "zero_R1", "zero_R2", "zero_R3", "zero_R4",
+  "three_R1", "three_R2", "three_R3", "three_R4",
+  "D1_R1", "D1_R2", "D1_R3", "D1_R4",
+  "D2_R1", "D2_R2", "D2_R3", "D2_R4",
+  "D3_R1", "D3_R2", "D3_R3", "D3_R4",
+  "D5_R1", "D5_R2", "D5_R3", "D5_R4",
+  "D7_R1", "D7_R2", "D7_R3", "D7_R4"
+)
+
+# Reorder matrix columns
+z_scores_ordered <- z_scores_sub[, sample_order]
+
+# Heatmap clustering
+heatmap_result <- pheatmap(z_scores_ordered,
+                           cluster_rows = TRUE,
+                           cluster_cols = FALSE,
+                           show_rownames = FALSE,
+                           fontsize_col = 8,
+                           silent = TRUE)
+
+# Cut into 5 clusters and reorder top-to-bottom
+gene_clusters <- cutree(heatmap_result$tree_row, k = 5)
+gene_order <- heatmap_result$tree_row$order
+ordered_clusters <- gene_clusters[gene_order]
+cluster_mean_pos <- tapply(seq_along(ordered_clusters), ordered_clusters, mean)
+cluster_map <- setNames(rank(cluster_mean_pos), names(cluster_mean_pos))
+gene_clusters_renumbered <- cluster_map[as.character(gene_clusters)]
+
+# Create cluster annotation
+annotation_row <- data.frame(Cluster = factor(gene_clusters_renumbered, levels = 1:5))
+rownames(annotation_row) <- rownames(z_scores_ordered)
+
+
+# Desired cluster order from top to bottom
+custom_order <- c(3, 2, 1, 5, 4)  # corresponds to top->bottom clusters
+
+# Create a mapping from current 1:5 to your custom order
+gene_clusters_custom <- setNames(custom_order, 1:5)[as.character(gene_clusters_renumbered)]
+gene_clusters_custom <- as.numeric(gene_clusters_custom)
+table(gene_clusters_custom)
+
+
+# Update annotation_row
+annotation_row$Cluster <- factor(gene_clusters_custom, levels = custom_order)
+rownames(annotation_row) <- rownames(z_scores_ordered)
+
+
+# Subset original logCPM matrix to DEGs (same order as heatmap)
+logCPM_deg <- logCPM[rownames(annotation_row), ]
+logCPM_df <- as.data.frame(logCPM_deg)
+logCPM_df$Cluster <- annotation_row$Cluster
+logCPM_df$Promoter <- rownames(logCPM_df)
+
+# Reorder columns
+logCPM_df <- logCPM_df[, c("Promoter", "Cluster", sample_order)]
+
+# Get all limma stats across all contrasts
+contrast_names <- colnames(fit$contrasts)
+all_stats <- list()
+
+for (contrast in contrast_names) {
+  res <- topTable(fit, coef = contrast, number = Inf, sort.by = "none", adjust.method = "BH")
+  colnames(res) <- paste0(contrast, "_", colnames(res))
+  res$Promoter <- rownames(res)
+  all_stats[[contrast]] <- res
+}
+
+# Merge all contrasts by "Promoter"
+stats_df <- Reduce(function(x, y) full_join(x, y, by = "Promoter"), all_stats)
+
+# Merge with expression + cluster
+final_df <- left_join(logCPM_df, stats_df, by = "Promoter")
+
+# Export full table
+write.csv(final_df, "DEG_all_clusters_logCPM_and_limma_stats.csv", row.names = FALSE)
+
+# Export per-cluster tables
+for (k in 1:5) {
+  sub_df <- final_df[final_df$Cluster == k, ]
+  write.csv(sub_df, paste0("cluster_", k, "_logCPM_and_stats.csv"), row.names = FALSE)
+}
+```
+
+
+
+KEGG pathway analysis by considering operon structure
+```{r}
+# Load required libraries
+library(dplyr)
+library(limma)
+library(edgeR)
+
+# Set working directory to cluster files
+setwd("~/Desktop/Desktop - Thonda-m80/Berkeley Research/2022.paperdraft/2nd submission/data")
+
+# List cluster files
+cluster_files <- paste0("cluster_", 1:5, "_logCPM_and_stats.csv")
+
+# Load KEGG annotation file
+setwd("~/Desktop/Desktop - Thonda-m80/Berkeley Research/Genome WCS417")
+KEGG_ID <- read.csv("OperonID_rockhopper_v4.csv", header = TRUE)
+
+# Make sure KEGG_ID has a "promoters" column and a "KEGG_OID" column
+
+# Return to cluster data directory
+setwd("~/Desktop/Desktop - Thonda-m80/Berkeley Research/2022.paperdraft/2nd submission/data")
+
+# Loop through clusters 1 to 5
+for (i in 1:5) {
+  message(paste("Processing cluster", i))
+  
+  # Load the already merged and edited file
+  merged_file <- paste0("merged_cluster_", i, "_edit.csv")
+  merged <- read.csv(merged_file, stringsAsFactors = FALSE)
+  
+  # Extract KEGG IDs and clean
+  kegg_ids <- merged$KEGG_OID
+  kegg_ids <- kegg_ids[!is.na(kegg_ids) & kegg_ids != ""]
+  
+  # Skip if no KEGG IDs
+  if (length(kegg_ids) == 0) {
+    message(paste("No KEGG IDs found for cluster", i))
+    next
+  }
+  
+  # Run KEGG enrichment
+  ke_result <- kegga(kegg_ids, species.KEGG = "ko")
+  
+  # Get top 20 enriched pathways
+  top_kegg <- topKEGG(ke_result, n = 20)
+  
+  # Save result
+  out_file <- paste0("KEGG_cluster", i, ".csv")
+  write.csv(top_kegg, file = out_file, row.names = FALSE)
+}
+```
+
+
+
+Metabolic pahtway analysis in cluster 1 vs cluster 5
+```{r}
+# --- Load required libraries ---
+library(dplyr)
+library(ggplot2)
+library(KEGGREST)
+library(VennDiagram)
+library(grid)  # For grid.newpage()
+
+# --- Load merged cluster files ---
+cluster1 <- read.csv("merged_cluster_1_edit.csv")
+cluster5 <- read.csv("merged_cluster_5_edit.csv")
+
+# --- Extract KO terms ---
+ko1 <- na.omit(unique(cluster1$KEGG_OID))
+ko5 <- na.omit(unique(cluster5$KEGG_OID))
+
+# --- Get list of KO terms in ko01100 ---
+ko01100_links <- keggLink("ko", "path:ko01100")
+ko_in_01100 <- unique(sub("ko:", "", ko01100_links))
+
+# --- Filter KO terms to ko01100 only ---
+ko1 <- ko1[ko1 %in% ko_in_01100]
+ko5 <- ko5[ko5 %in% ko_in_01100]
+
+# --- Convert to KEGG format ---
+ko1_full <- paste0("ko:", ko1)
+ko5_full <- paste0("ko:", ko5)
+
+# --- Map filtered KOs to KEGG pathways ---
+pathmap1 <- keggLink("pathway", ko1_full)
+pathmap5 <- keggLink("pathway", ko5_full)
+
+df1 <- data.frame(
+  KO = sub("ko:", "", names(pathmap1)),
+  PathwayID = sub("path:ko", "", pathmap1),
+  stringsAsFactors = FALSE
+)
+df5 <- data.frame(
+  KO = sub("ko:", "", names(pathmap5)),
+  PathwayID = sub("path:ko", "", pathmap5),
+  stringsAsFactors = FALSE
+)
+
+# --- Count KO occurrences per pathway ---
+path_counts1 <- df1 %>%
+  count(PathwayID, name = "KO_Count") %>%
+  mutate(Cluster = "Cluster 1")
+
+path_counts5 <- df5 %>%
+  count(PathwayID, name = "KO_Count") %>%
+  mutate(Cluster = "Cluster 5")
+
+# --- Combine and annotate pathway names ---
+bubble_df <- bind_rows(path_counts1, path_counts5)
+
+kegg_paths <- keggList("pathway", "ko")
+pathway_df <- data.frame(
+  PathwayID = sub("path:", "", names(kegg_paths)),
+  PathwayName = unname(kegg_paths),
+  stringsAsFactors = FALSE
+)
+
+bubble_df$PathwayID <- paste0("ko", bubble_df$PathwayID)
+bubble_df <- left_join(bubble_df, pathway_df, by = "PathwayID") %>%
+  filter(grepl("metabolism", PathwayName, ignore.case = TRUE)) %>%
+  filter(!is.na(PathwayName))
+
+# --- Select top N pathways ---
+N <- 25
+top_paths <- bubble_df %>%
+  group_by(PathwayName) %>%
+  summarise(total_KO = sum(KO_Count), .groups = "drop") %>%
+  arrange(desc(total_KO)) %>%
+  slice_head(n = N) %>%
+  pull(PathwayName)
+
+bubble_df <- bubble_df %>% filter(PathwayName %in% top_paths)
+
+# --- Display Venn Diagram in a new page ---
+grid.newpage()
+venn.plot <- draw.pairwise.venn(
+  area1 = length(ko1),
+  area2 = length(ko5),
+  cross.area = length(intersect(ko1, ko5)),
+  category = c("Cluster 1", "Cluster 5"),
+  fill = c("lightblue", "lightgreen"),
+  lty = "blank",
+  cex = 2,
+  cat.cex = 2
+)
+
+# --- KO overlap analysis ---
+shared_ko <- intersect(ko1, ko5)
+unique_ko1 <- setdiff(ko1, ko5)
+unique_ko5 <- setdiff(ko5, ko1)
+
+# --- Map KO to pathway function ---
+map_ko_to_pathway <- function(kos) {
+  if (length(kos) == 0) return(data.frame(KO = character(), PathwayID = character()))
+  pathmap <- keggLink("pathway", paste0("ko:", kos))
+  data.frame(
+    KO = sub("ko:", "", names(pathmap)),
+    PathwayID = sub("path:ko", "", pathmap),
+    stringsAsFactors = FALSE
+  )
+}
+
+df_unique1 <- map_ko_to_pathway(unique_ko1) %>% mutate(Type = "Cluster 1")
+df_unique5 <- map_ko_to_pathway(unique_ko5) %>% mutate(Type = "Cluster 5")
+df_all <- bind_rows(df_unique1, df_unique5)
+
+df_all$PathwayID <- paste0("ko", df_all$PathwayID)
+df_all <- left_join(df_all, pathway_df, by = "PathwayID")
+
+# --- Count KOs per pathway and filter ---
+summary_unique <- df_all %>%
+  count(Type, PathwayName, name = "KO_Count") %>%
+  filter(grepl("metabolism", PathwayName, ignore.case = TRUE)) %>%
+  filter(!is.na(PathwayName)) %>%
+  filter(PathwayName %in% top_paths)
+
+# --- Prepare diverging barplot ---
+summary_unique_plot <- summary_unique %>%
+  mutate(KO_Count = ifelse(Type == "Cluster 1", -KO_Count, KO_Count))
+
+# Reorder by Cluster 1 KO count
+cluster1_order <- summary_unique_plot %>%
+  filter(Type == "Cluster 1") %>%
+  arrange(KO_Count) %>%
+  pull(PathwayName)
+
+summary_unique_plot$PathwayName <- factor(summary_unique_plot$PathwayName, levels = cluster1_order)
+
+# --- Remove NA and unwanted pathway ---
+summary_unique_plot <- summary_unique_plot %>%
+  filter(!is.na(PathwayName)) %>%
+  filter(PathwayName != "Microbial metabolism in diverse environments")
+
+# --- Plot diverging bar chart with default ggplot fill colors ---
+ggplot(summary_unique_plot, aes(x = KO_Count, y = PathwayName, fill = Type)) +
+  geom_col() +
+  theme_minimal(base_size = 13) +
+  labs(
+    title = paste("Top", N, "ko01100 Metabolic Pathways (← Cluster 1 | Cluster 5 →)"),
+    x = "KO Count",
+    y = "Pathway",
+    fill = "Cluster"
+  ) +
+  scale_x_continuous(labels = abs) +
+  theme(
+    axis.text.y = element_text(size = 10, face = "bold"),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+```
+
+
