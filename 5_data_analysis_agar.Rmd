@@ -67,15 +67,6 @@ summarydf$glu_R2 <- summarydf$RNA_glu_R2.fasta / summarydf$DNA_glu_R2.fasta
 summarydf$glu_R3 <- summarydf$RNA_glu_R3.fasta / summarydf$DNA_glu_R3.fasta
 summarydf$glu_R4 <- summarydf$RNA_glu_R4.fasta / summarydf$DNA_glu_R4.fasta
 
-
-summarydf$zero <- (summarydf$zero_R1+summarydf$zero_R2+summarydf$zero_R3+summarydf$zero_R4)/4
-summarydf$three <- (summarydf$three_R1+summarydf$three_R2+summarydf$three_R3+summarydf$three_R4)/4
-summarydf$D1 <- (summarydf$D1_R1+summarydf$D1_R2+summarydf$D1_R3+summarydf$D1_R4)/4
-summarydf$D2 <- (summarydf$D2_R1+summarydf$D2_R2+summarydf$D2_R3+summarydf$D2_R4)/4
-summarydf$D3 <- (summarydf$D3_R1+summarydf$D3_R2+summarydf$D3_R3+summarydf$D3_R4)/4
-summarydf$D5 <- (summarydf$D5_R1+summarydf$D5_R2+summarydf$D5_R3+summarydf$D5_R4)/4
-summarydf$D7 <- (summarydf$D7_R1+summarydf$D7_R2+summarydf$D7_R3+summarydf$D7_R4)/4
-summarydf$glu <- (summarydf$glu_R1+summarydf$glu_R2+summarydf$glu_R3+summarydf$glu_R4)/4
 ```
 
 
